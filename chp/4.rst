@@ -1214,7 +1214,7 @@ C 代码在遍历字符串的过程中，渐增地计算结果。Haskell 代码�
     500000000500000000
 
 就是这样。]
-[我(github:sancao2)的电脑上面行为还是"Exception: stack overflow".
+[@sancao2:我的电脑上面，还是"Exception: stack overflow".
 ::
    ➜  ch04  uname -a
    Linux centos 3.10.0-229.20.1.el7.x86_64 #1 SMP Tue Nov 3 19:10:07 UTC 2015 x86_64 x86_64 x86_64 GNU/Linux
@@ -1224,8 +1224,7 @@ C 代码在遍历字符串的过程中，渐增地计算结果。Haskell 代码�
    Loading package integer-gmp ... linking ... done.
    Loading package base ... linking ... done.
    Prelude> foldl (+) 0 [1..100000000]
-   *** Exception: stack overflow
-]
+   *** Exception: stack overflow               ]
 
 练习
 1.运用 ``fold`` （运用合适的fold将会是你的代码更简单）重写并扩展位于＂显式递归＂章节的 ``asInt`` 函数．
