@@ -822,7 +822,7 @@ Haskell 开发诀窍
 
 现在我们终于可以在 **ghci** 里试试 ``compact`` 函数了。[译注：这里要对 ``PrettyJSON.hs`` 里 ``import Prettify`` 部分作一下修改才能使 ``PrettyJSON.hs`` 编译。
 包括去掉还未实现的 ``pretty`` 函数，增加缺少的 ``string``, ``series`` 函数等。一个可以编译的版本如下。]
-[我(sancao2)还是不能编译成功,报错:
+[@sancao2:还是不能编译成功,报错:
 ::
    Prelude> :l PrettyJSON.hs
    
@@ -837,8 +837,7 @@ Haskell 开发诀窍
    [1 of 3] Compiling SimpleJSON       ( SimpleJSON.hs, interpreted )
    [2 of 3] Compiling Prettify         ( Prettify.hs, interpreted )
    [3 of 3] Compiling PrettyJSON       ( PrettyJSON.hs, interpreted )
-   Ok, modules loaded: PrettyJSON, SimpleJSON, Prettify.
-]
+   Ok, modules loaded: PrettyJSON, SimpleJSON, Prettify.            ]
    
 ::
 
