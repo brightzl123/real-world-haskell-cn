@@ -1,26 +1,48 @@
 * Chapter 7. I/O
 It should be obvious that most, if not all, programs are devoted to gathering data from outside, processing it, and providing results back to the outside world.
 That is, input and output are key.
+显然地，若不是全部，大多数的程序致力于收集数据于外面，处理之，然后提供结果回外界。
+也就是说，输入和输出是关键的“钥匙”．
+
 Haskell’s I/O system is powerful and expressive.
 It is easy to work with and important to understand.
+Haskell的I/O系统是强大而有表现力的。
+它是简单的，在其工作之时;且是重要的,对你理解来说。
+
 Haskell strictly separates pure code from code that could cause things to occur in the world.
 That is, it provides a complete isolation from side-effects in pure code.
 Besides helping programmers to reason about the correctness of their code, it also permits compilers to automatically introduce optimizations and parallelism.
+Haskell严格地分离纯代码，以有别于那些代码，其（那些代码）可能导致一些事情发生于这个世界之中。
+就是说，它提供着一种完全的隔离，以避免副作用于纯代码。
+包括帮助程序员们推出他们代码的正确之外，它也允许编译器们去自动地引进优化们和并行。
+
 We’ll begin this chapter with simple, standard-looking I/O in Haskell.
 Then we’ll discuss some of the more powerful options as well as provide more detail on how I/O fits into the pure, lazy, functional Haskell world.
+我们将开始本章，以用简单而看起来标准的Haskell的I/O。
+然后我们将讨论一些更强大的选项们，而其（选项们）提供更多细节，（该细节）关于怎么I/O适配这个纯的，惰性的，函数式的Haskell世界。
+
 ** Classic I/O in Haskell
 Let’s get started with I/O in Haskell by looking at a program that looks surprisingly similar to I/O in other languages such as C or Perl.
+让我们开始，用Haskell的I/O，通过看一个程序，而其（该程序）看起来惊人地相像于其他语言，如 C 或　Perl。
+
+#+begin_src Haskell
 -- file: ch07/basicio.hs
 main = do
-putStrLn "Greetings! What is your name?"
-inpStr <- getLine
-putStrLn $ "Welcome to Haskell, " ++ inpStr ++ "!"
+       putStrLn "Greetings! What is your name?"
+       inpStr <- getLine
+       putStrLn $ "Welcome to Haskell, " ++ inpStr ++ "!"
+#+end_src
+
 You can compile this program to a standalone executable, run it with runghc, or invoke main from within ghci.
 Here’s a sample session using runghc:
+
+#+begin_example
 $ runghc basicio.hs
 Greetings! What is your name?
 John
 Welcome to Haskell, John!
+#+end_example
+
 That’s a fairly simple, obvious result.
 You can see that putStrLn writes out a String, followed by an end-of-line character.
 getLine reads a line from standard input.
@@ -29,10 +51,14 @@ Put simply, that binds the result from executing an I/O action to a name.
 1 We use the simple list concatenation operator ++ to join the input string with our own text.
 Let’s take a look at the types of putStrLn and getLine.
 You can find that information in the library reference, or just ask ghci:
+
+#+begin_example
 ghci> :type putStrLn
 putStrLn :: String -> IO ()
 ghci> :type getLine
 getLine :: IO String
+#+end_example
+
 Notice that both of these types have IO in their return value.
 That is your key to knowing that they may have side effects, or that they may return different values even when called with the same arguments, or both.
 The type of putStrLn looks like a function.
@@ -48,9 +74,13 @@ This is similar to void in Java or C.2
 Tip: Actions can be created, assigned, and passed anywhere.
 However, they may only be performed(executed) from within another I/O action.
 Let’s look at this with ghci:
+
+#+begin_example
 ghci> let writefoo = putStrLn "foo"
 ghci> writefoo
 foo
+#+end_example
+
 In this example, the output foo is not a return value from putStrLn.
 Rather, it’s the side effect of putStrLn actually writing foo to the terminal.
 Notice one other thing: ghci actually executed writefoo.
@@ -80,18 +110,22 @@ You only need to use do if you have more than one action that you need to perfor
 The value of a do block is the value of the last action executed.
 For a complete description of do syntax, see the Section called Desugaring of do blocks in Chapter 14.
 Let’s consider an example of calling pure code from within an I/O action:
+
+#+begin_src Haskell
 -- file: ch07/callingpure.hs
 name2reply :: String -> String
 name2reply name =
-"Pleased to meet you, " ++ name ++ ".\n" ++
-"Your name contains " ++ charcount ++ " characters."
-where charcount = show (length name)
+    "Pleased to meet you, " ++ name ++ ".\n" ++
+    "Your name contains " ++ charcount ++ " characters."
+    where charcount = show (length name)
+
 main :: IO ()
 main = do
-putStrLn "Greetings once again.
-inpStr <- getLine
-let outStr = name2reply inpStr
-putStrLn outStr
+       putStrLn "Greetings once again.
+       inpStr <- getLine
+       let outStr = name2reply inpStr
+       putStrLn outStr
+#+end_src
 What is your name?"
 Notice the name2reply function in this example.
 It is a regular Haskell function and obeys all the rules we’ve told you about: it always returns the same result when given the same input, it has no side effects, and it operates lazily.
@@ -105,6 +139,8 @@ In fact, the last two lines of main could have been replaced with putStrLn (name
 So, while main did have side effects—it caused things to appear on the terminal, for instance—name2reply did not and could not.
 That’s because name2reply is a pure function, not an action.
 Let’s examine this with ghci:
+
+#+begin_example
 ghci> :load callingpure.hs
 [1 of 1] Compiling Main
 Ok, modules loaded: Main.
@@ -114,6 +150,8 @@ ghci> name2reply "John"
 ghci> putStrLn (name2reply "John")
 Pleased to meet you, John.
 Your name contains 4 characters.
+#+end_example
+
 The \n within the string is the end-of-line (newline) character, which causes the terminal to begin a new line in its output.
 Just calling name2reply "John" in ghci will show you the \n literally, because it is using show to display the return value.
 But using putStrLn sends it to the terminal, and the terminal interprets \n to start a new line.
@@ -127,12 +165,16 @@ As a way to help with understanding the differences between pure code and I/O, h
 When we speak of pure code, we are talking about Haskell functions that always return the same result when given the same input and have no side effects.
 In Haskell, only the execution of I/O actions avoid these rules.
 Table 7-1. Pure vs. Impure
-Pure Impure
-Always produces the same result when given the May produce different results for the same
-same parameters parameters
-Never has side effects May have side effects
-Never alters state May alter the global state of the program, system,
-                  or world
+|----------------------------------------------------------------+-------------------------------------------------------------|
+| Pure                                                           | Impure                                                      |
+|----------------------------------------------------------------+-------------------------------------------------------------|
+| Always produces the same result when given the same parameters | May produce different results for the same parameters       |
+|----------------------------------------------------------------+-------------------------------------------------------------|
+| Never has side effects                                         | May have side effects                                       |
+|----------------------------------------------------------------+-------------------------------------------------------------|
+| Never alters state                                             | May alter the global state of the program, system, or world |
+|----------------------------------------------------------------+-------------------------------------------------------------|
+
 *** Why Purity Matters
 In this section, we’ve discussed how Haskell draws a clear distinction between pure code and I/O actions.
 Most languages don’t draw this distinction.
@@ -163,24 +205,29 @@ There are "h" functions corresponding to virtually all of the non-"h" functions;
 Let’s start with an imperative way to read and write files.
 This should seem similar to a while loop that you may find in other languages.
 This isn’t the best way to write it in Haskell; later, you’ll see examples of more Haskellish approaches.
+
+#+begin_src Haskell
 -- file: ch07/toupper-imp.hs
 import System.IO
 import Data.Char(toUpper)
 main :: IO ()
 main = do
-inh <- openFile "input.txt" ReadMode
-outh <- openFile "output.txt" WriteMode
-mainloop inh outh
-hClose inh
-hClose outh
+       inh <- openFile "input.txt" ReadMode
+       outh <- openFile "output.txt" WriteMode
+       mainloop inh outh
+       hClose inh
+       hClose outh
+
 mainloop :: Handle -> Handle -> IO ()
 mainloop inh outh =
-do ineof <- hIsEOF inh
-if ineof
-then return ()
-else do inpStr <- hGetLine inh
-hPutStrLn outh (map toUpper inpStr)
-mainloop inh outh
+    do ineof <- hIsEOF inh
+       if ineof
+           then return ()
+           else do inpStr <- hGetLine inh
+                   hPutStrLn outh (map toUpper inpStr)
+                   mainloop inh outh
+#+end_src
+
 Like every Haskell program, execution of this program begins with main.
 Two files are opened:
 input.txt is opened for reading, and output.txt is opened for writing.
@@ -201,51 +248,60 @@ When executed, that action would produce the result 7.
 For more details on return, see the Section called The True Nature of Return.
 Let’s try running the program.
 We’ve got a file named input.txt that looks like this:
+
+#+begin_example
 This is ch08/input.txt
+
 Test Input
 I like Haskell
 Haskell is great
 I/O is fun
+
 123456789
+#+end_example
+
 Now, you can use runghc toupper-imp.hs and you’ll find output.txt in your directory.
 It should
 look like this:
+
+#+begin_example
 THIS IS CH08/INPUT.TXT
+
 TEST INPUT
 I LIKE HASKELL
 HASKELL IS GREAT
 I/O IS FUN
+
 123456789
+#+end_example
+
 *** More on openFile
 Let’s use ghci to check on the type of openFile:
+
+#+begin_example
 ghci> :module System.IO
 ghci> :type openFile
 openFile :: FilePath -> IOMode -> IO Handle
+#+end_example
+
 FilePath is simply another name for String.
 It is used in the types of I/O functions to help clarify that the parameter is being used as a filename, and not as regular data.
 IOMode specifies how the file is to be managed.
 The possible values for IOMode are listed in Table 7-2.
  * FIXME: check formatting on this table for final book; openjade doesn’t render it well
-Table 7-2.
-Possible IOMode Values
-IOMode Can read? Can write? Starting Notes
-                            position 
-ReadMode Yes No Beginning of file File must exist
-                                 already
-IOMode Can read? Can write? Starting Notes
-                            position 
-WriteMode No Yes Beginning of file File is truncated
-                                  (completely
-                                 emptied) if it
-                                already existed
-ReadWriteMode Yes Yes Beginning of file File is created if
-                                       didn’t exist;
-                                        otherwise, existin
-                                       data is left intact
-AppendMode No Yes End of file File is created if
-                             didn’t exist;
-                              otherwise, existin
-                             data is left intact.
+Table 7-2.Possible IOMode Values
+|---------------+-----------+------------+-------------------+--------------------------------------------------------------------------|
+| IOMode        | Can read? | Can write? | Starting positon  | Notes                                                                    |
+|---------------+-----------+------------+-------------------+--------------------------------------------------------------------------|
+| ReadMode      | Yes       | No         | Beginning of file | File must exist already                                                  |
+|---------------+-----------+------------+-------------------+--------------------------------------------------------------------------|
+| WriteMode     | No        | Yes        | Beginning of file | File is truncated (completely emptied) if it already existed             |
+|---------------+-----------+------------+-------------------+--------------------------------------------------------------------------|
+| ReadWriteMode | Yes       | Yes        | Beginning of file | File is created if didn’t exist; otherwise, existin data is left intact  |
+|---------------+-----------+------------+-------------------+--------------------------------------------------------------------------|
+| AppendMode    | No        | Yes        | End of file       | File is created if didn’t exist; otherwise, existin data is left intact. |
+|---------------+-----------+------------+-------------------+--------------------------------------------------------------------------|
+                             
 While we are mostly working with text examples in this chapter, binary files can also be used in Haskell.
 If you are working with a binary file, you should use openBinaryFile instead of openFile.
 Operating systems such as Windows process files differently if they are opened as binary instead of as text.
@@ -296,9 +352,13 @@ These Handles are always available for your use.
 They are stdin, which corresponds to standard input; stdout for standard output; and stderr for standard error.
 Standard input normally refers to the keyboard, standard output to the monitor, and standard error also normally goes to the monitor.
 Functions such as getLine can thus be trivially defined like this:
+
+#+begin_example
 getLine = hGetLine stdin
 putStrLn = hPutStrLn stdout
 print = hPrint stdout
+#+end_example
+
 Tip: We’re using partial application here.
 If this isn’t making sense, consult the Section called Partial
 function application and currying in Chapter 4 for a refresher.
@@ -309,11 +369,15 @@ It often makes sense to use standard input and output instead of specific files.
 This lets you interact with a human at the terminal.
 But it also lets you work with input and output files—or even combine your code with other programs—if that’s what’s requested.5
 As an example, we can provide input to callingpure.hs in advance like this:
+
+#+begin_example
 $ echo John|runghc callingpure.hs
 Greetings once again.
 What is your name?
 Pleased to meet you, John.
 Your name contains 4 characters.
+#+end_example
+
 While callingpure.hs was running, it did not wait for input at the keyboard; instead it received John from the echo program.
 Notice also that the output didn’t contain the word John on a separate line as it did when this program was run at the keyboard.
 The terminal normally echoes everything you type back to you, but that is technically input, and is not included in the output stream.
@@ -350,87 +414,86 @@ See the following example for a sample function to use.
 ** Extended Example: Functional I/O and Temporary Files
 Here’s a larger example that puts together some concepts from this chapter, from some earlier chapters, and a few you haven’t seen yet.
 Take a look at the program and see if you can figure out what it does and how it works.
+
+#+begin_src Haskell
 -- file: ch07/tempfile.hs
 import System.IO
 import System.Directory(getTemporaryDirectory, removeFile)
 import System.IO.Error(catch)
 import Control.Exception(finally)
--- The main entry point.
-Work with a temp file in myAction.
+
+-- The main entry point.  Work with a temp file in myAction.
 main :: IO ()
 main = withTempFile "mytemp.txt" myAction
-{- The guts of the program.
-Called with the path and handle of a temporary file.
-When this function exits, that file will be closed and deleted because myAction was called from withTempFile.
--}
+
+{- The guts of the program.  Called with the path and handle of a temporary file.
+   When this function exits, that file will be closed and deleted because myAction was called from withTempFile. -}
 myAction :: FilePath -> Handle -> IO ()
 myAction tempname temph =
-do -- Start by displaying a greeting on the terminal
-putStrLn "Welcome to tempfile.hs"
-putStrLn $ "I have a temporary file at " ++ tempname
--- Let’s see what the initial position is
-pos <- hTell temph
-putStrLn $ "My initial position is " ++ show pos
--- Now, write some data to the temporary file
-let tempdata = show [1..10]
-putStrLn $ "Writing one line containing " ++
-show (length tempdata) ++ " bytes: " ++
-tempdata
-hPutStrLn temph tempdata
--- Get our new position.
-This doesn’t actually modify pos
--- in memory, but makes the name "pos" correspond to a different
--- value for the remainder of the "do" block.
-pos <- hTell temph
-putStrLn $ "After writing, my new position is " ++ show pos
--- Seek to the beginning of the file and display it
-putStrLn $ "The file content is: "
-hSeek temph AbsoluteSeek 0
--- hGetContents performs a lazy read of the entire file
-c <- hGetContents temph
--- Copy the file byte-for-byte to stdout, followed by \n
-putStrLn c
--- Let’s also display it as a Haskell literal
-putStrLn $ "Which could be expressed as this Haskell literal:"
-print c
-{- This function takes two parameters: a filename pattern and another
-function.
-It will create a temporary file, and pass the name and Handle
-of that file to the given function.
-The temporary file is created with openTempFile.
-The directory is the one
-indicated by getTemporaryDirectory, or, if the system has no notion of
-a temporary directory, "." is used.
-The given pattern is passed to
-openTempFile.
-After the given function terminates, even if it terminates due to an
-exception, the Handle is closed and the file is deleted.
--}
+    do -- Start by displaying a greeting on the terminal
+       putStrLn "Welcome to tempfile.hs"
+       putStrLn $ "I have a temporary file at " ++ tempname
+
+       -- Let’s see what the initial position is
+       pos <- hTell temph
+       putStrLn $ "My initial position is " ++ show pos
+
+       -- Now, write some data to the temporary file
+       let tempdata = show [1..10]
+       putStrLn $ "Writing one line containing " ++
+                  show (length tempdata) ++ " bytes: " ++
+                  tempdata
+       hPutStrLn temph tempdata
+
+       -- Get our new position.  This doesn’t actually modify pos
+       -- in memory, but makes the name "pos" correspond to a different
+       -- value for the remainder of the "do" block.
+       pos <- hTell temph
+       putStrLn $ "After writing, my new position is " ++ show pos
+       -- Seek to the beginning of the file and display it
+       putStrLn $ "The file content is: "
+       hSeek temph AbsoluteSeek 0
+
+       -- hGetContents performs a lazy read of the entire file
+       c <- hGetContents temph
+
+       -- Copy the file byte-for-byte to stdout, followed by \n
+       putStrLn c
+
+       -- Let’s also display it as a Haskell literal
+       putStrLn $ "Which could be expressed as this Haskell literal:"
+       print c
+
+{- This function takes two parameters: a filename pattern and another function.
+   It will create a temporary file, and pass the name and Handle of that file to the given function.
+
+   The temporary file is created with openTempFile.  
+   The directory is the one indicated by getTemporaryDirectory, or, if the system has no notion of a temporary directory, "." is used.
+   The given pattern is passed to openTempFile.
+
+   After the given function terminates, even if it terminates due to an exception, the Handle is closed and the file is deleted. -}
 withTempFile :: String -> (FilePath -> Handle -> IO a) -> IO a
 withTempFile pattern func =
-do -- The library ref says that getTemporaryDirectory may raise on
--- exception on systems that have no notion of a temporary directory.
--- So, we run getTemporaryDirectory under catch.
-catch takes
--- two functions: one to run, and a different one to run if the
--- first raised an exception.
-If getTemporaryDirectory raised an
--- exception, just use "." (the current working directory).
-tempdir <- catch (getTemporaryDirectory) (\_ -> return ".")
-(tempfile, temph) <- openTempFile tempdir pattern
--- Call (func tempfile temph) to perform the action on the temporary
--- file.
-finally takes two actions.
-The first is the action to run.
--- The second is an action to run after the first, regardless of
--- whether the first action raised an exception.
-This way, we ensure
--- the temporary file is always deleted.
-The return value from finally
--- is the first action’s return value.
-finally (func tempfile temph)
-(do hClose temph
-removeFile tempfile)
+    do -- The library ref says that getTemporaryDirectory may raise on
+       -- exception on systems that have no notion of a temporary directory.
+       -- So, we run getTemporaryDirectory under catch. catch takes
+       -- two functions: one to run, and a different one to run if the
+       -- first raised an exception.  If getTemporaryDirectory raised an
+       -- exception, just use "." (the current working directory).
+       tempdir <- catch (getTemporaryDirectory) (\_ -> return ".")
+       (tempfile, temph) <- openTempFile tempdir pattern
+
+       -- Call (func tempfile temph) to perform the action on the temporary
+       -- file.  finally takes two actions.  The first is the action to run.
+       -- The second is an action to run after the first, regardless of
+       -- whether the first action raised an exception.  This way, we ensure
+       -- the temporary file is always deleted.  The return value from finally
+       -- is the first action’s return value.
+       finally (func tempfile temph)
+               (do hClose temph
+                   removeFile tempfile)
+#+end_src
+
 Let’s start looking at this program from the end.
 The withTempFile function demonstrates that Haskell doesn’t forget its functional nature when I/O is introduced.
 This function takes a String and another function.
@@ -449,6 +512,8 @@ myAction displays some information to the terminal, writes some data to the file
 byte-for-byte, and also as a Haskell literal via print c.
 That’s the same as putStrLn (show c).
 Let’s look at the output:
+
+#+begin_example
 $ runhaskell tempfile.hs
 Welcome to tempfile.hs
 I have a temporary file at /tmp/mytemp8572.txt
@@ -457,8 +522,11 @@ Writing one line containing 22 bytes: [1,2,3,4,5,6,7,8,9,10]
 After writing, my new position is 23
 The file content is:
 [1,2,3,4,5,6,7,8,9,10]
+
 Which could be expressed as this Haskell literal:
 "[1,2,3,4,5,6,7,8,9,10]\n"
+#+end_example
+
 Every time you run this program, your temporary file name should be slightly different since it contains a randomly-generated component.
 Looking at this output, there are a few questions that might occur to you:
 1. Why is your position 23 after writing a line with 22 bytes?
@@ -499,20 +567,25 @@ Let’s take a quick look at an example.
 Back in the Section called Working With Files and Handles, you saw an imperative program that converted the entire content of a file to uppercase.
 Its imperative algorithm was similar to what you’d see in many other languages.
 Here now is the much simpler algorithm that exploits lazy evaluation:
+
+#+begin_src Haskell
 -- file: ch07/toupper-lazy1.hs
 import System.IO
 import Data.Char(toUpper)
 main :: IO ()
 main = do
-inh <- openFile "input.txt" ReadMode
-outh <- openFile "output.txt" WriteMode
-inpStr <- hGetContents inh
-let result = processData inpStr
-hPutStr outh result
-hClose inh
-hClose outh
+       inh <- openFile "input.txt" ReadMode
+       outh <- openFile "output.txt" WriteMode
+       inpStr <- hGetContents inh
+       let result = processData inpStr
+       hPutStr outh result
+       hClose inh
+       hClose outh
+
 processData :: String -> String
 processData = map toUpper
+#+end_src
+
 Notice that hGetContents handled all of the reading for us.
 Also, take a look at processData.
 It’s a pure function since it has no side effects and always returns the same result each time it is called.
@@ -521,6 +594,8 @@ It has no need to know—and no way to tell—that its input is being read lazil
 9. More precisely, it is the entire data from the current position of the file pointer to the end of the file.
 It can work perfectly well with a 20-character literal or a 500GB data dump on disk.
 You can even verify that with ghci:
+
+#+begin_example
 ghci> :load toupper-lazy1.hs
 [1 of 1] Compiling Main
 Ok, modules loaded: Main.
@@ -533,6 +608,8 @@ ghci> :type processData
 processData :: String -> String
 ghci> :type processData "Hello!"
 processData "Hello!" :: String
+#+end_example
+
 Warning
 If we had tried to hang on to inpStr in the above example, past the one place where it was used (the call to processData), the program would have lost its memory efficiency.
 That’s because the compiler would have been forced to keep inpStr’s value in memory for future use.
@@ -540,16 +617,21 @@ Here it knows that inpStr will never be reused, and frees the memory as soon as 
 Just remember: memory is only freed after its last use.
 This program was a bit verbose to make it clear that there was pure code in use.
 Here’s a bit more concise version, which we will build on in the next examples:
+
+#+begin_src Haskell
 -- file: ch07/toupper-lazy2.hs
 import System.IO
 import Data.Char(toUpper)
+
 main = do
-inh <- openFile "input.txt" ReadMode
-outh <- openFile "output.txt" WriteMode
-inpStr <- hGetContents inh
-hPutStr outh (map toUpper inpStr)
-hClose inh
-hClose outh
+       inh <- openFile "input.txt" ReadMode
+       outh <- openFile "output.txt" WriteMode
+       inpStr <- hGetContents inh
+       hPutStr outh (map toUpper inpStr)
+       hClose inh
+       hClose outh
+#+end_src
+
 You are not required to ever consume all the data from the input file when using hGetContents.
 Whenever the Haskell system determines that the entire string hGetContents returned can be garbage collected —which means it will never again be used—the file is closed for you automatically.
 The same principle applies to data read from the file.
@@ -568,16 +650,25 @@ readFile and writeFile are shortcuts for working with files as strings.
 They handle all the details of opening files, closing files, reading data, and writing data.
 readFile uses hGetContents internally.
 Can you guess the Haskell types of these functions? Let’s check with ghci:
+
+#+begin_example
 ghci> :type readFile
 readFile :: FilePath -> IO String
 ghci> :type writeFile
 writeFile :: FilePath -> String -> IO ()
+#+end_example
+
 Now, here’s an example program that uses readFile and writeFile:
+
+#+begin_src Haskell
 -- file: ch07/toupper-lazy3.hs
 import Data.Char(toUpper)
+
 main = do
-inpStr <- readFile "input.txt"
-writeFile "output.txt" (map toUpper inpStr)
+       inpStr <- readFile "input.txt"
+       writeFile "output.txt" (map toUpper inpStr)
+#+end_src
+
 Look at that—the guts of the program take up only two lines! readFile returned a lazy String, which we stored in inpStr.
 We then took that, processed it, and passed it to writeFile for writing.
 Neither readFile nor writeFile ever provide a Handle for you to work with, so there is nothing to ever hClose.
@@ -605,21 +696,33 @@ You learned that readFile and writeFile address the common situation of reading 
 making a conversion, and writing to a different file.
 There’s a situation that’s even more common than that: reading from standard input, making a conversion, and writing the result to standard output.
 For that situation, there is a function called interact.
-The type of interact is (String -> String) ->
-IO ().
+The type of interact is (String -> String) -> IO ().
 That is, it takes one argument: a function of type String -> String.
 That function is passed the result of getContents—that is, standard input read lazily.
 The result of that function is sent to standard output.
 We can convert our example program to operate on standard input and standard output by using
 interact.
 Here’s one way to do that:
+
+#+begin_src Haskell
 -- file: ch07/toupper-lazy4.hs
 import Data.Char(toUpper)
+
 main = interact (map toUpper)
+#+end_src
+
 Look at that—one line of code to achieve our transformation! To achieve the same effect as with the previous examples, you could run this one like this:
+
+#+begin_example
 $ runghc toupper-lazy4.hs < input.txt > output.txt
+#+end_example
+
 Or, if you’d like to see the output printed to the screen, you could type:
+
+#+begin_example
 $ runghc toupper-lazy4.hs < input.txt
+#+end_example
+
 If you want to see that Haskell output truly does write out chunks of data as soon as they are received, run runghc toupper-lazy4.hs without any other command-line parameters.
 You should see each character echoed back out as soon as you type it, but in uppercase.
 Buffering may change this behavior; see the Section called Buffering later in this chapter for more on buffering.
@@ -627,44 +730,63 @@ If you see each line echoed as soon as you type it, or even nothing at all for a
 You can also write simple interactive programs using interact.
 Let’s start with a simple example:
 adding a line of text before the uppercase output.
+
+#+begin_src Haskell
 -- file: ch07/toupper-lazy5.hs
 import Data.Char(toUpper)
-main = interact (map toUpper .
-(++) "Your data, in uppercase, is:\n\n")
+main = interact (map toUpper . (++) "Your data, in uppercase, is:\n\n")
+#+end_src
+
 Tip: If the use of the . operator is confusing, you might wish to refer to the Section called Code reuse through composition in Chapter 4.
 Here we add a string at the beginning of the output.
 Can you spot the problem, though?
 Since we’re calling map on the result of (++), that header itself will appear in uppercase.
 We can fix that in this way:
+
+#+begin_src Haskell
 -- file: ch07/toupper-lazy6.hs
 import Data.Char(toUpper)
+
 main = interact ((++) "Your data, in uppercase, is:\n\n" .
-map toUpper)
+                map toUpper)
+#+end_src
+
 This moved the header outside of the map.
 **** Filters with interact
 Another common use of interact is filtering.
 Let’s say that you want to write a program that reads a file and prints out every line that contains the character "a".
 Here’s how you might do that with interact:
+
+#+begin_src Haskell
 -- file: ch07/filter.hs
-main = interact (unlines .
-filter (elem ’a’) .
-lines)
+main = interact (unlines . filter (elem ’a’) . lines)
+#+end_src
+
 This may have introduced three functions that you aren’t familiar with yet.
 Let’s inspect their types with ghci:
+
+#+begin_example
 ghci> :type lines
 lines :: String -> [String]
 ghci> :type unlines
 unlines :: [String] -> String
 ghci> :type elem
 elem :: (Eq a) => a -> [a] -> Bool
+#+end_example
+
 Can you guess what these functions do just by looking at their types? 
 If not, you can find them explained in the Section called Warming up: portably splitting lines of text in Chapter 4 and the Section called Special string-handling functions in Chapter 4.
 You’ll frequently see lines and unlines used with I/O.
 Finally, elem takes a element and a list and returns True if that element occurs anywhere in the list.
 Try running this over our standard example input:
+
+#+begin_example
 $ runghc filter.hs < input.txt
 I like Haskell
-Haskell is great Sure enough, you got back the two lines that contain an "a".
+Haskell is great 
+#+end_example
+
+Sure enough, you got back the two lines that contain an "a".
 Lazy filters are a powerful way to use Haskell.
 When you think about it, a filter—such as the standard Unix program grep—sounds a lot like a function.
 It takes some input, applies some computation, and generates a predictable output.
@@ -691,38 +813,52 @@ Monads are a powerful way of chaining functions together purely and are covered 
 It’s not necessary to understand monads in order to understand I/O.
 Just understand that the result type of actions is "tagged" with IO.
 Let’s take a look at some types:
+
+#+begin_example
 ghci> :type putStrLn
 putStrLn :: String -> IO ()
 ghci> :type getLine
 getLine :: IO String
+#+end_example
+
 The type of putStrLn is just like any other function.
 The function takes one parameter and returns an IO ().
 This IO () is the action.
 You can store and pass actions in pure code if you wish, though this isn’t frequently done.
 An action doesn’t do anything until it is invoked.
 Let’s look at an example of this:
+
+#+begin_src Haskell
 -- file: ch07/actions.hs
 str2action :: String -> IO ()
 str2action input = putStrLn ("Data: " ++ input)
 list2actions :: [String] -> [IO ()]
 list2actions = map str2action
+
 numbers :: [Int]
 numbers = [1..10]
+
 strings :: [String]
 strings = map show numbers
+
 actions :: [IO ()]
 actions = list2actions strings
+
 printitall :: IO ()
 printitall = runall actions
+
 -- Take a list of actions, and execute each of them in turn.
 runall :: [IO ()] -> IO ()
 runall [] = return ()
 runall (firstelem:remainingelems) =
-do firstelem
-runall remainingelems
+    do firstelem
+       runall remainingelems
+
 main = do str2action "Start of the program"
-printitall
-str2action "Done!"
+          printitall
+          str2action "Done!"
+#+end_src
+
 str2action is a function that takes one parameter and returns an IO ().
 As you can see at the end of main, you could use this directly in another action and it will print out a line right away.
 Or, you can store—but not execute—the action from pure code.
@@ -734,7 +870,9 @@ You could think of it this way: every statement, except let, in a do block must 
 The call to printitall finally executes all those actions.
 Actually, since Haskell is lazy, the actions aren’t generated until here either.
 When you run the program, your output will look like this:
-Start of the program
+
+#+begin_example
+Data: Start of the program
 Data: 1
 Data: 2
 Data: 3
@@ -746,20 +884,27 @@ Data: 8
 Data: 9
 Data: 10
 Data: Done!
+#+end_example
+
 We can actually write this in a much more compact way.
 Consider this revision of the example:
+
+#+begin_src Haskell
 -- file: ch07/actions2.hs
 str2message :: String -> String
 str2message input = "Data: " ++ input
+
 str2action :: String -> IO ()
-str2action = putStrLn .
-str2message
+str2action = putStrLn . str2message
+
 numbers :: [Int]
 numbers = [1..10]
+
 main = do str2action "Start of the program"
-mapM_ (str2action .
-show) numbers
-str2action "Done!"
+          mapM_ (str2action . show) numbers
+          str2action "Done!"
+#+end_src
+
 Notice in str2action the use of the standard function composition operator.
 In main, there’s a call to mapM_.
 This function is similar to map.
@@ -767,10 +912,14 @@ It takes a function and a list.
 The function supplied to mapM_ is an I/O action that is executed for every item in the list.
 mapM_ throws out the result of the function, though you can use mapM to return a list of I/O results if you want them.
 Take a look at their types:
+
+#+begin_example
 ghci> :type mapM
 mapM :: (Monad m) => (a -> m b) -> [a] -> m [b]
 ghci> :type mapM_
 mapM_ :: (Monad m) => (a -> m b) -> [a] -> m ()
+#+end_example
+
 Tip: These functions actually work for more than just I/O; they work for any Monad.
 For now, wherever you see "M", just think "IO".
 Also, functions that end with an underscore typically discard their result.
@@ -783,13 +932,16 @@ mapM_combines these individual actions into one big action that prints out lines
 do blocks are actually shortcut notations for joining together actions.
 There are two operators that you can use instead of do blocks: >> and >>=.
 Let’s look at their types in ghci:
+
+#+begin_example
 ghci> :type (>>)
-11.
-Technically speaking, mapM combines a bunch of separate I/O actions into one big action.
-The separate actions are executed when the big action is.
 (>>) :: (Monad m) => m a -> m b -> m b
 ghci> :type (>>=)
 (>>=) :: (Monad m) => m a -> (a -> m b) -> m b
+#+end_example
+
+11. Technically speaking, mapM combines a bunch of separate I/O actions into one big action.
+The separate actions are executed when the big action is.
 The >> operator sequences two actions together: the first action is performed, then the second.
 The result of the computation is the result of the second action.
 The result of the first action is thrown away.
@@ -801,17 +953,25 @@ That second action is run as well, and the result of the entire expression is th
 As an example, you could write getLine >>= putStrLn, which would read a line from the keyboard and then display it back out.
 Let’s re-write one of our examples to avoid do blocks.
 Remember this example from the start of the chapter?
+
+#+begin_src Haskell
 -- file: ch07/basicio.hs
 main = do
-putStrLn "Greetings! What is your name?"
-inpStr <- getLine
-putStrLn $ "Welcome to Haskell, " ++ inpStr ++ "!"
+       putStrLn "Greetings! What is your name?"
+       inpStr <- getLine
+       putStrLn $ "Welcome to Haskell, " ++ inpStr ++ "!"
+#+end_src
+
 Let’s write that without a do block:
+
+#+begin_src Haskell
 -- file: ch07/basicio-nodo.hs
 main =
-putStrLn "Greetings! What is your name?" >>
-getLine >>=
-(\inpStr -> putStrLn $ "Welcome to Haskell, " ++ inpStr ++ "!")
+    putStrLn "Greetings! What is your name?" >>
+    getLine >>=
+    (\inpStr -> putStrLn $ "Welcome to Haskell, " ++ inpStr ++ "!")
+#+end_src
+
 The Haskell compiler internally performans a translation just like this when you define a do block.
 Tip: Forgetting how to use \ (lambda expressions)? See the Section called Anonymous (lambda) functions in Chapter 4.
 *** The True Nature of Return 
@@ -824,37 +984,49 @@ Now, why would we want to do that? Remember that anything whose result depends o
 So if we are writing a function that performs I/O, then a pure computation, we will need to use return to make this pure computation the proper return value of the function.
 Otherwise, a type error would occur.
 Here’s an example:
+
+#+begin_src Haskell
 -- file: ch07/return1.hs
 import Data.Char(toUpper)
 isGreen :: IO Bool
 isGreen =
-do putStrLn "Is green your favorite color?"
-inpStr <- getLine
-return ((toUpper .
-head $ inpStr) == ’Y’)
+    do putStrLn "Is green your favorite color?"
+       inpStr <- getLine
+       return ((toUpper . head $ inpStr) == ’Y’)
+#+end_src
+
 We have a pure computation that yields a Bool.
 That computation is passed to return, which puts it into the IO monad.
 Since it is the last value in the do block, it becomes the return value of isGreen, but this is not because we used the return function.
 Here’s a version of the same program with the pure computation broken out into a separate function.
 This helps keep the pure code separate, and can also make the intent more clear.
+
+#+begin_src Haskell
 -- file: ch07/return2.hs
 import Data.Char(toUpper)
+
 isYes :: String -> Bool
-isYes inpStr = (toUpper .
-head $ inpStr) == ’Y’
+isYes inpStr = (toUpper . head $ inpStr) == ’Y’
+
 isGreen :: IO Bool
 isGreen =
-do putStrLn "Is green your favorite color?"
-inpStr <- getLine
-return (isYes inpStr)
+    do putStrLn "Is green your favorite color?"
+       inpStr <- getLine
+       return (isYes inpStr)
+#+end_src
+
 Finally, here’s a contrived example to show that return truly does not have to occur at the end of a do block.
 In practice, it usually is, but it need not be so.
+
+#+begin_src Haskell
 -- file: ch07/return3.hs
 returnTest :: IO ()
 returnTest =
-do one <- return 1
-let two = 2
-putStrLn $ show (one + two)
+    do one <- return 1
+       let two = 2
+       putStrLn $ show (one + two)
+#+end_src
+
 Notice that we used <- in combination with return, but let in combination with the simple literal.
 That’s because we needed both values to be pure in order to add them, and <- pulls things out of monads, effectively reversing the effect of return.
 Run this in ghci and you’ll see 3 displayed, as expected.
